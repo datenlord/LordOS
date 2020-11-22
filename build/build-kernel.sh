@@ -42,7 +42,7 @@ curl -sL  http://download.opensuse.org/repositories/home:/katacontainers:/releas
 sudo apt-get update
 
 # Install Docker if necessary
-if ! [ -x `command -v docker` ]; then
+if [ ! -x `command -v docker` ]; then
     sudo apt-get --yes install docker.io
 else
     echo "docker is already installed"
@@ -80,20 +80,26 @@ if [ $BUILD_KERNEL = "true" ]; then
     export GOPATH=$WORK_DIR/go # Used when build kernel for Kata
 
     # Install kernel build dependencies
-    sudo -E apt-get --yes install
-        bison \
-        build-essential \
-        clang-$LLVM \
-        flex \
-        libncurses-dev \
-        libssl-dev \
-        libelf-dev
-        lld-$LLVM \
-	;
+    sudo -E apt-get --yes install libelf-dev
+#    sudo -E apt-get --yes install \
+#        bc \
+#        bison \
+#        build-essential \
+#        clang-$LLVM \
+#        flex \
+#        libncurses-dev \
+#        libssl-dev \
+#        libelf-dev \
+#        lld-$LLVM \
+#        llvm-$LLVM-dev \
+#        ;
     # Make installed clang and ld.lld as default
     sudo -E mv /usr/bin/clang-$LLVM /usr/bin/clang || which clang 
     sudo -E mv /usr/bin/ld.lld-$LLVM /usr/bin/ld.lld || which ld.lld
-    # scripts/kconfig/conf  --syncconfig Kconfig
+    sudo -E mv /usr/bin/llvm-ar-$LLVM /usr/bin/llvm-ar || which llvm-ar
+    sudo -E mv /usr/bin/llvm-objcopy-$LLVM /usr/bin/llvm-objcopy || which llvm-objcopy
+    sudo -E mv /usr/bin/llvm-objdump-$LLVM /usr/bin/llvm-objdump || which llvm-objdump
+    sudo -E mv /usr/bin/llvm-nm-$LLVM /usr/bin/llvm-nm || which llvm-nm
 
     #sudo apt-get --yes install \
     #    bc \
@@ -135,7 +141,6 @@ if [ $BUILD_KERNEL = "true" ]; then
     #    libz-dev \
     #    lld \
     #    llvm-$LLVM-dev \
-    #    llvm-$LLVM-dev \
     #    python \
     #    ;
 
@@ -154,11 +159,13 @@ if [ $BUILD_KERNEL = "true" ]; then
     sudo -E ./build-kernel.sh -v $KERNEL_VERSION -d install
 
     # Verify the new kernel installed for kata-container
-    docker run \
-            -it \
-            --rm \
-            --runtime=kata-runtime \
-            ubuntu uname -r \
-        | grep $KERNEL_VERSION \
-        || (echo "Failed to load new kernel $KERNEL_VERSION in Kata" && false)
+    if [ -e "/dev/kvm" ]; then
+        docker run \
+                -it \
+                --rm \
+                --runtime=kata-runtime \
+                ubuntu uname -r \
+            | grep $KERNEL_VERSION \
+            || (echo "Failed to load new kernel $KERNEL_VERSION in Kata" && false)
+    fi
 fi

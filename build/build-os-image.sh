@@ -23,8 +23,9 @@ if [ -d $ROOTFS_DIR ]; then
 fi
 
 # Install dependencies
-sudo apt-get update && sudo apt-get --yes install
-    build-essential \
+#    gcc \
+#    make \
+sudo apt-get update && sudo apt-get --yes install \
     debootstrap \
     qemu-utils \
     ;
