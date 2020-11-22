@@ -80,7 +80,16 @@ if [ $BUILD_KERNEL = "true" ]; then
     export GOPATH=$WORK_DIR/go # Used when build kernel for Kata
 
     # Install kernel build dependencies
-    sudo -E apt-get --yes install clang-$LLVM lld-$LLVM
+    sudo -E apt-get --yes install
+        bison \
+        build-essential \
+        clang-$LLVM \
+        flex \
+        libncurses-dev \
+        libssl-dev \
+        libelf-dev
+        lld-$LLVM \
+	;
     # Make installed clang and ld.lld as default
     sudo -E mv /usr/bin/clang-$LLVM /usr/bin/clang || which clang 
     sudo -E mv /usr/bin/ld.lld-$LLVM /usr/bin/ld.lld || which ld.lld
