@@ -1,0 +1,26 @@
+arch: amd64
+
+branches:
+  only: 
+    - main
+
+language: rust
+
+dist: focal
+
+os: linux
+
+services:
+  - docker
+
+job:
+  include:
+    - name: clang-9-kernel-5.8
+      env: LLVM=9 KERNEL_VERSION=5.8.18
+    - name: clang-10-kernel-5.9
+      env: LLVM=10 KERNEL_VERSION=5.9.9
+
+  fast_finish: true
+
+script:
+  - build/build_kernel.sh
