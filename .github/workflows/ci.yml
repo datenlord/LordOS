@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  schedule: [cron: "0 */4 * * *"]
+
+jobs:
+  build-kernel:
+    name: Build kernel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          build/build-kernel.sh
+
+  build-image:
+    name: Build OS image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15.5'
+      - run: |
+          build/build-os-image.sh
