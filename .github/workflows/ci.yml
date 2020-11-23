@@ -4,18 +4,33 @@ on:
     branches: [main]
   schedule: [cron: "0 */4 * * *"]
 
-env:
-  KERNEL_VERSION: 5.9.9
-  LLVM: 9
-
 jobs:
-  build-kernel:
-    name: Build kernel
+  build-latest-stable-kernel:
+    name: Build latest stable kernel with LLVM 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - name: Compile kernel
+        run: |
           build/build-kernel.sh
+        env:
+          KERNEL_VERSION: 5.9.9
+          LLVM_VERSION: 10
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  build-previous-stable-kernel:
+    name: Build previous stable kernel with LLVM 9
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Compile kernel
+        run: |
+          build/build-kernel.sh
+        env:
+          KERNEL_VERSION: 5.8.18
+          LLVM_VERSION: 9
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3

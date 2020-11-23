@@ -1,24 +1,39 @@
 #! /bin/sh
 
-#ADD_CARGO_REPO_MIRROR=${ADD_CARGO_REPO_MIRROR:-"false"}
-#BCC=${BCC:-"0.17.0"}
-#BUILD_BCC=${BUILD_BCC:-"true"}
-#BUILD_DOCKER_IMAGE=${BUILD_DOCKER_IMAGE:-"true"}
 BUILD_KERNEL=${BUILD_KERNEL:-"true"};
-#BUILD_BCC_INSIDE_KATA=${BUILD_BCC_INSIDE_KATA:-false}
-#DIST=${DIST:-"bionic"}
-#FEATURES=${FEATURES:-"v0_17_0"}
 KERNEL_VERSION=${KERNEL_VERSION:-"5.9.6"}
-LLVM=${LLVM:-9}
-#STATIC=${STATIC:-"true"}
-#RUST_BCC_DOCKER_NAME=rust-bcc-test-env
-#RUST_BCC_DOCKER_NAME=${RUST_BCC_DOCKER_NAME:-"datenlord/rust_bcc:ubuntu20.04-bcc0.17.0"}
+LLVM_VERSION=${LLVM_VERSION:-9}
 
 DOCKER_BUILD_DIR=/tmp/docker_build
 DOCKER_DAEMON_JSON=/etc/docker/daemon.json
 WORK_DIR=`pwd`
 
-# Remove clang path from PATH env
+install_package_if_necessary() {
+    if [ -z "$1" ]; then
+        echo "Please input package name"
+    elif [ -z `dpkg --list | grep $1` ]; then
+        echo "Install package $1"
+        sudo -E apt-get --yes install $1
+    else
+        echo "$1 already installed"
+    fi
+}
+
+set_default_llvm_tool() {
+    if [ -z "$1" ]; then
+        echo "Please input LLVM tool name"
+    elif [ -x `command -v $1-$LLVM_VERSION` ]; then
+        TOOL_PATH=`command -v $1-$LLVM_VERSION`
+        TOOL_DIR=`dirname $TOOL_PATH`
+        sudo -E cp --force --symbolic-link $TOOL_PATH $TOOL_DIR/$1
+        ls -lsh `which $1`
+    else
+        echo "LLVM tool $1-$LLVM_VERSION not found"
+        /bin/false
+    fi
+}
+
+# Remove clang path from PATH env when run inTravis-CI
 TMPPATH=$(
 for onepath in `echo $PATH | sed 's/:/\ /g'`; do
     echo $onepath | grep -v clang
@@ -55,11 +70,10 @@ else
 fi
 
 # Install Kata components
-sudo apt-get --yes install \
-    kata-proxy \
-    kata-runtime \
-    kata-shim \
-    ;
+install_package_if_necessary kata-proxy
+install_package_if_necessary kata-runtime
+install_package_if_necessary kata-shim
+
 # Config Docker to use Kata runtime
 sudo mkdir -p /etc/docker
 sudo tee $DOCKER_DAEMON_JSON <<EOF
@@ -79,27 +93,52 @@ sudo systemctl restart docker
 if [ $BUILD_KERNEL = "true" ]; then
     export GOPATH=$WORK_DIR/go # Used when build kernel for Kata
 
+    # Install Clang and LLVM
+    install_package_if_necessary clang-$LLVM_VERSION
+    install_package_if_necessary lld-$LLVM_VERSION
+    install_package_if_necessary llvm-$LLVM_VERSION-dev
+
     # Install kernel build dependencies
-    sudo -E apt-get --yes install libelf-dev
+    install_package_if_necessary libelf-dev
 #    sudo -E apt-get --yes install \
 #        bc \
 #        bison \
 #        build-essential \
-#        clang-$LLVM \
+#        clang-$LLVM_VERSION \
 #        flex \
 #        libncurses-dev \
 #        libssl-dev \
 #        libelf-dev \
-#        lld-$LLVM \
-#        llvm-$LLVM-dev \
+#        lld-$LLVM_VERSION \
+#        llvm-$LLVM_VERSION-dev \
 #        ;
-    # Make installed clang and ld.lld as default
-    sudo -E mv /usr/bin/clang-$LLVM /usr/bin/clang || which clang 
-    sudo -E mv /usr/bin/ld.lld-$LLVM /usr/bin/ld.lld || which ld.lld
-    sudo -E mv /usr/bin/llvm-ar-$LLVM /usr/bin/llvm-ar || which llvm-ar
-    sudo -E mv /usr/bin/llvm-objcopy-$LLVM /usr/bin/llvm-objcopy || which llvm-objcopy
-    sudo -E mv /usr/bin/llvm-objdump-$LLVM /usr/bin/llvm-objdump || which llvm-objdump
-    sudo -E mv /usr/bin/llvm-nm-$LLVM /usr/bin/llvm-nm || which llvm-nm
+    # Use LLVM to compile kernel, according to
+    # https://www.kernel.org/doc/html/latest/kbuild/llvm.html
+    export LLVM=1
+    export CC=clang
+    export LD=ld.lld
+    export AR=llvm-ar
+    export NM=llvm-nm
+    export STRIP=llvm-strip
+    export OBJCOPY=llvm-objcopy
+    export OBJDUMP=llvm-objdump
+    export OBJSIZE=llvm-size
+    export READELF=llvm-readelf
+    export HOSTCC=clang
+    export HOSTCXX=clang++
+    export HOSTAR=llvm-ar
+    export HOSTLD=ld.lld
+
+    set_default_llvm_tool clang
+    set_default_llvm_tool ld.lld
+    set_default_llvm_tool llvm-ar
+    set_default_llvm_tool llvm-nm
+    set_default_llvm_tool llvm-strip
+    set_default_llvm_tool llvm-objcopy
+    set_default_llvm_tool llvm-objdump
+    set_default_llvm_tool llvm-size
+    set_default_llvm_tool llvm-readelf
+    set_default_llvm_tool clang++
 
     #sudo apt-get --yes install \
     #    bc \
@@ -132,7 +171,7 @@ if [ $BUILD_KERNEL = "true" ]; then
     #    cmake \
     #    flex \
     #    git \
-    #    libclang-$LLVM-dev \
+    #    libclang-$LLVM_VERSION-dev \
     #    libedit-dev \
     #    libelf-dev \
     #    libfl-dev \
@@ -140,7 +179,7 @@ if [ $BUILD_KERNEL = "true" ]; then
     #    libssl-dev \
     #    libz-dev \
     #    lld \
-    #    llvm-$LLVM-dev \
+    #    llvm-$LLVM_VERSION-dev \
     #    python \
     #    ;
 
