@@ -12,9 +12,13 @@ jobs:
       - uses: actions/checkout@v2
       - name: Compile kernel
         run: |
+          curl http://cdn.kernel.org -o kernel.org.html
+          sed -n '/<td>stable:<\/td>/I,/<\/tr>/I{ s/<[^>]*>//g; s/\[[^][]*\]//g; p }' kernel.org.html > stable_info.txt
+          grep -E "[0-9]+\.[0-9]+" stable_info.txt > stable_versions.txt
+          KERNEL_VERSION=`awk 'NR==1 {print $1}' stable_versions.txt`
+          echo "To compile kernel $KERNEL_VERSION"
           build/build-kernel.sh
         env:
-          KERNEL_VERSION: 5.9.9
           LLVM_VERSION: 10
       - name: Setup tmate session
         if: ${{ failure() }}
@@ -27,9 +31,13 @@ jobs:
       - uses: actions/checkout@v2
       - name: Compile kernel
         run: |
+          curl http://cdn.kernel.org -o kernel.org.html
+          sed -n '/<td>stable:<\/td>/I,/<\/tr>/I{ s/<[^>]*>//g; s/\[[^][]*\]//g; p }' kernel.org.html > stable_info.txt
+          grep -E "[0-9]+\.[0-9]+" stable_info.txt > stable_versions.txt
+          KERNEL_VERSION=`awk 'NR==2 {print $1}' stable_versions.txt`
+          echo "To compile kernel $KERNEL_VERSION"
           build/build-kernel.sh
         env:
-          KERNEL_VERSION: 5.8.18
           LLVM_VERSION: 9
       - name: Setup tmate session
         if: ${{ failure() }}
