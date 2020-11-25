@@ -56,3 +56,34 @@ jobs:
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
+
+  build-mini-linux:
+    name: Build mini linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          build/build-mini-linux.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  #build-crosstool-ng:
+  #  name: Build crosstool-NG
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - run: |
+  #        build/build-crosstool-ng.sh
+  #    - name: Setup tmate session
+  #      if: ${{ failure() }}
+  #      uses: mxschmitt/action-tmate@v3
+
+  #qemu-test:
+  #  name: QEMU test
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - name: Setup tmate session
+  #      if: ${{ always() }}
+  #      uses: mxschmitt/action-tmate@v3
