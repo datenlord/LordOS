@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
     branches: [main]
-  schedule: [cron: "0 */4 * * *"]
+  schedule: [cron: "0 */6 * * *"]
 
 jobs:
   build-latest-stable-kernel:
@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-          build/build-mini-linux.sh
+          build/build-lordos.sh
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
