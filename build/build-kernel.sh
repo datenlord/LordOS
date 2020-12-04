@@ -22,7 +22,7 @@ install_package_if_necessary() {
 set_default_llvm_tool() {
     if [ -z "$1" ]; then
         echo "Please input LLVM tool name"
-    elif [ -x `command -v $1-$LLVM_VERSION` ]; then
+    elif [ -x "`command -v $1-$LLVM_VERSION`" ]; then
         TOOL_PATH=`command -v $1-$LLVM_VERSION`
         TOOL_DIR=`dirname $TOOL_PATH`
         sudo -E cp --force --symbolic-link $TOOL_PATH $TOOL_DIR/$1
@@ -57,7 +57,7 @@ curl -sL  http://download.opensuse.org/repositories/home:/katacontainers:/releas
 sudo apt-get update
 
 # Install Docker if necessary
-if [ ! -x `command -v docker` ]; then
+if [ ! -x "`command -v docker`" ]; then
     sudo apt-get --yes install docker.io
 else
     echo "docker is already installed"
