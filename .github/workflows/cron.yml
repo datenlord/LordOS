@@ -1,0 +1,50 @@
+name: CRON-XTOOLS
+on:
+  pull_request:
+    branches: [main]
+  schedule: [cron: "0 */2 * * *"]
+
+jobs:
+  build-xtools-aarch64:
+    name: Build toolchain for ARM64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ARCH=aarch64 build/build-toolchain.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  build-xtools-arm:
+    name: Build toolchain for ARM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ARCH=arm build/build-toolchain.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  build-xtools-x86_64:
+    name: Build toolchain for X86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ARCH=x86_64 build/build-toolchain.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  upload-toolchain
+    name: Upload toolchain
+    needs: [build-xtools-aarch64, build-xtools-arm, build-xtools-x86_64]
+    runs-on: ubuntu-latest
+    steps:
+  - uses: actions/upload-artifact@v2
+    with:
+      name: toolchain
+      path: '~/x-tools/*.tgz'
+
