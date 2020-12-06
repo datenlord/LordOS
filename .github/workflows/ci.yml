@@ -57,13 +57,34 @@ jobs:
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
 
-  build-mini-linux:
-    name: Build mini linux
+  build-lordos-aarch64:
+    name: Build LordOS for ARM64
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - run: |
-          build/build-lordos.sh
+          ARCH=aarch64 build/build-lordos.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+
+  build-lordos-arm:
+    name: Build LordOS for ARM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ARCH=arm build/build-lordos.sh
+      - name: Setup tmate session
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3
+  build-lordos-x86_64:
+    name: Build LordOS for X86_64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          ARCH=x86_64 build/build-lordos.sh
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3

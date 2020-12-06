@@ -12,39 +12,47 @@ sudo apt-get update
 
 export LORDOS_VERSION=lordos-0.1
 export ARCH=${ARCH:-"x86_64"}
+echo "build $LORDOS_VERSION for $ARCH..."
+
 case $ARCH in
     "aarch64")
         export TARGET_TRIPLET=aarch64-unknown-linux-gnu
-        export KERNEL_CONFIG_FILE=aarch64-kernel.config
-        export BUILDROOT_CONFIG_FILE=buildroot-aarch64.def.config
         export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-aarch64/aarch64-unknown-linux-gnu.tgz"
+        export KERNEL_CONFIG_FILE=kernel.def.config
+        export KERNEL_BUILD_ARCH=arm64
+        export HAS_KERNEL_DEFCONFIG=true
+        export BUILDROOT_CONFIG_FILE=buildroot-aarch64.def.config
         sudo apt-get --yes install qemu-system-arm
         ;;
     "arm")
         export TARGET_TRIPLET=arm-unknown-linux-gnueabi
-        export KERNEL_CONFIG_FILE=arm-kernel.config
-        export BUILDROOT_CONFIG_FILE=buildroot-arm.def.config
         export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-arm/arm-unknown-linux-gnueabi.tgz"
+        export KERNEL_CONFIG_FILE=kernel.def.config
+        export KERNEL_BUILD_ARCH=arm
+        export HAS_KERNEL_DEFCONFIG=true
+        export BUILDROOT_CONFIG_FILE=buildroot-arm.def.config
         sudo apt-get --yes install qemu-system-arm
         ;;
     "x86_64")
         export TARGET_TRIPLET=x86_64-unknown-linux-gnu
-        export KERNEL_CONFIG_FILE=x86_64-kernel.config
-        export BUILDROOT_CONFIG_FILE=buildroot-x86_64.def.config
         export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-x86_64/x86_64-unknown-linux-gnu.tgz"
+        export KERNEL_CONFIG_FILE=kernel-x86_64.config
+        export KERNEL_BUILD_ARCH=x86_64
+        export HAS_KERNEL_DEFCONFIG=false
+        export BUILDROOT_CONFIG_FILE=buildroot-x86_64.def.config
         sudo apt-get --yes install qemu-system-x86
         ;;
 esac
 echo "target: $TARGET_TRIPLET"
 
-export CODE=`pwd`/code
-mkdir -p $CODE
-export BUILDS=`pwd`/lordos_builds
+export BUILDS=`pwd`/lordos_builds/$ARCH
 mkdir -p $BUILDS
 cp build/*.config $BUILDS
 cp build/init $BUILDS
-# sed "s/CONFIG_LOCALVERSION=\"\"/CONFIG_LOCALVERSION=\"$LORDOS_VERSION\"/g" build/$KERNEL_CONFIG_FILE > $BUILDS/$KERNEL_CONFIG_FILE
-# diff build/$KERNEL_CONFIG_FILE $BUILDS/$KERNEL_CONFIG_FILE | grep $LORDOS_VERSION
+sed "s/CONFIG_LOCALVERSION=\"\"/CONFIG_LOCALVERSION=\"$LORDOS_VERSION\"/g" build/$KERNEL_CONFIG_FILE > $BUILDS/$KERNEL_CONFIG_FILE
+diff build/$KERNEL_CONFIG_FILE $BUILDS/$KERNEL_CONFIG_FILE | grep $LORDOS_VERSION
+export CODE=$BUILDS/code
+mkdir -p $CODE
 
 qemu-system-$ARCH --machine help
 
@@ -75,6 +83,7 @@ else
     make
     sudo make install
 fi
+# ct-ng list-samples
 ct-ng show-$TARGET_TRIPLET
 
 # build crosstool-ng toolchain
@@ -123,26 +132,33 @@ export KERNEL_VERSION=`ct-ng show-$TARGET_TRIPLET | grep ': linux-' | cut -d '-'
 echo "kernel version: $KERNEL_VERSION"
 export KERNEL_MAJOR_VERSION=`echo $KERNEL_VERSION | cut -d '.' -f 1`
 export KERNEL_MINOR_VERSION=`echo $KERNEL_VERSION | cut -d '.' -f 2`
-export LINUX_BUILD=$BUILDS/linux-$KERNEL_VERSION
-rm -rf $LINUX_BUILD || echo "no need to remove $LINUX_BUILD"
-mkdir -p $LINUX_BUILD
-# cd $LINUX_BUILD
+export KERNEL_BUILD=$BUILDS/linux-$KERNEL_VERSION
+rm -rf $KERNEL_BUILD || echo "no need to remove $KERNEL_BUILD"
+mkdir -p $KERNEL_BUILD
 # mv ../$KERNEL_CONFIG_FILE defconfig
 cd $CODE
-export LINUX_CODE=$CODE/linux-$KERNEL_VERSION
+export KERNEL_CODE=$CODE/linux-$KERNEL_VERSION
 wget --timestamping https://cdn.kernel.org/pub/linux/kernel/v$KERNEL_MAJOR_VERSION.x/linux-$KERNEL_VERSION.tar.xz
-rm -rf $LINUX_CODE || echo "no need to remove $LINUX_CODE"
+rm -rf $KERNEL_CODE || echo "no need to remove $KERNEL_CODE"
 tar xf linux-$KERNEL_VERSION.tar.xz
 # cd $CODE
 # sudo ln -sf linux-$KERNEL_VERSION linux
-cd $LINUX_CODE
-# make O=$LINUX_BUILD ARCH=$ARCH CROSS_COMPILE="$TARGET_TRIPLET-" defconfig
-make O=$LINUX_BUILD ARCH=$ARCH allnoconfig
-cd $LINUX_BUILD
-mv ../$KERNEL_CONFIG_FILE local.config
-sed "s/CONFIG_LOCALVERSION=\"\"/CONFIG_LOCALVERSION=\"$LORDOS_VERSION\"/g" local.config > .config
-diff local.config .config | grep $LORDOS_VERSION
-time make ARCH=$ARCH CROSS_COMPILE="$TARGET_TRIPLET-" -j2
+cd $KERNEL_CODE
+# make O=$KERNEL_BUILD ARCH=$ARCH CROSS_COMPILE="$TARGET_TRIPLET-" defconfig
+if [ "$HAS_KERNEL_DEFCONFIG" = true ]; then
+    cp $BUILDS/$KERNEL_CONFIG_FILE $KERNEL_CODE/arch/$KERNEL_BUILD_ARCH/configs/
+    make O=$KERNEL_BUILD ARCH=$KERNEL_BUILD_ARCH CROSS_COMPILE="$TARGET_TRIPLET-" allnoconfig $KERNEL_CONFIG_FILE
+else
+    make O=$KERNEL_BUILD ARCH=$KERNEL_BUILD_ARCH CROSS_COMPILE="$TARGET_TRIPLET-" allnoconfig
+fi
+cd $KERNEL_BUILD
+if [ "$HAS_KERNEL_DEFCONFIG" = true ]; then
+    echo "use generated config from defconfig"
+else
+    echo "no use generated config from defconfig"
+    cp $BUILDS/$KERNEL_CONFIG_FILE .config
+fi
+time make ARCH=$KERNEL_BUILD_ARCH CROSS_COMPILE="$TARGET_TRIPLET-" -j2
 
 # busybox
 cd $CODE
@@ -167,15 +183,15 @@ mkdir -p $INITRAMFS_BUILD
 cd $INITRAMFS_BUILD
 mkdir -p bin sbin etc proc sys usr/bin usr/sbin
 cp -a $BUSYBOX_BUILD/_install/* .
-cp ../init .
+cp $BUILDS/init .
 find . -print0 | cpio --null -ov --format=newc \
   | gzip -9 > $INITRAMFS_BUILD/initramfs.cpio.gz
 
 # test run
-timeout 15 qemu-system-$ARCH -kernel $LINUX_BUILD/arch/x86/boot/bzImage \
+timeout 15 qemu-system-$ARCH -kernel $KERNEL_BUILD/arch/$KERNEL_BUILD_ARCH/boot/bzImage \
   -initrd $INITRAMFS_BUILD/initramfs.cpio.gz -nographic \
   -append "console=ttyS0" \
-  || echo "mini_linux OK"
+  || echo "LordOS OK"
 
 # buildroot
 export BUILDROOT_BUILD=$BUILDS/buildroot
@@ -203,7 +219,7 @@ make O=$BUILDROOT_BUILD BR2_EXTERNAL=$BUILDROOT_BUILD defconfig BR2_DEFCONFIG=$B
 cd $BUILDROOT_BUILD
 time make
 
-timeout 20 qemu-system-$ARCH -kernel $LINUX_BUILD/arch/x86/boot/bzImage \
+timeout 20 qemu-system-$ARCH -kernel $KERNEL_BUILD/arch/$KERNEL_BUILD_ARCH/boot/bzImage \
   -initrd $BUILDROOT_BUILD/images/rootfs.cpio.gz -nographic \
   -append "console=ttyS0" \
-  || echo "mini_linux OK"
+  || echo "LordOS OK"
