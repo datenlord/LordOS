@@ -1,4 +1,4 @@
-name: CI
+name: LordOS-CI
 on:
   pull_request:
     branches: [main]
@@ -62,7 +62,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: cron.yml
+          workflow_conclusion: success
+          name: aarch64-toolchain
+          path: /home/runner/x-tools
+      - name: Compile toolchain
+        run: |
+          tar -zxvf ~/x-tools/aarch64*.tgz -C ~/x-tools/
           ARCH=aarch64 build/build-lordos.sh
       - name: Setup tmate session
         if: ${{ failure() }}
@@ -73,7 +81,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: cron.yml
+          workflow_conclusion: success
+          name: arm-toolchain
+          path: /home/runner/x-tools
+      - name: Compile toolchain
+        run: |
+          tar -zxvf ~/x-tools/arm*.tgz -C ~/x-tools/
           ARCH=arm build/build-lordos.sh
       - name: Setup tmate session
         if: ${{ failure() }}
@@ -83,7 +99,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: |
+      - uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: cron.yml
+          workflow_conclusion: success
+          name: x86_64-toolchain
+          path: /home/runner/x-tools
+      - name: Compile toolchain
+        run: |
+          tar -zxvf ~/x-tools/x86_64*.tgz -C ~/x-tools/
           ARCH=x86_64 build/build-lordos.sh
       - name: Setup tmate session
         if: ${{ failure() }}

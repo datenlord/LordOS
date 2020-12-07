@@ -83,26 +83,26 @@ else
     make
     sudo make install
 fi
-# ct-ng list-samples
 ct-ng show-$TARGET_TRIPLET
 
-# build crosstool-ng toolchain
+# check crosstool-ng toolchain available or not
 export TOOLCHAIN_DIR=$HOME/x-tools/$TARGET_TRIPLET
 export PATH="$PATH:$TOOLCHAIN_DIR/bin"
 export SYSROOT=$TOOLCHAIN_DIR/$TARGET_TRIPLET/sysroot
 export GCC=$TARGET_TRIPLET-gcc
 if [ -x "`command -v $GCC`" ]; then
     $GCC --version
-    echo "no need to build toolchain"
+    echo "$TARGET_TRIPLET toolchain: $TOOLCHAIN_DIR"
 else
-    export CROSSTOOL_BUILD=$BUILDS/crosstool-ng
-    rm -rf $CROSSTOOL_BUILD || echo "no need to remove $CROSSTOOL_BUILD"
-    mkdir -p $CROSSTOOL_BUILD
-    cd $CROSSTOOL_BUILD
-    ct-ng $TARGET_TRIPLET
-    # ct-ng x86_64-unknown-linux-gnu
-    # mv ../crosstool-ng.config .config
-    ct-ng build
+    # ct-ng list-samples
+    echo "$TARGET_TRIPLET toolchain not in $TOOLCHAIN_BASE_DIR, exit"
+    exit 1
+    # export CROSSTOOL_BUILD=$BUILDS/crosstool-ng
+    # rm -rf $CROSSTOOL_BUILD || echo "no need to remove $CROSSTOOL_BUILD"
+    # mkdir -p $CROSSTOOL_BUILD
+    # cd $CROSSTOOL_BUILD
+    # ct-ng $TARGET_TRIPLET
+    # ct-ng build
 fi
 
 # test crosstool-ng toolchain
