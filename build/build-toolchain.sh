@@ -81,4 +81,4 @@ $GCC -static $XTOOLS_TEST.c -o $XTOOLS_TEST
 cd $HOME/x-tools
 export KERNEL_VERSION=`ct-ng show-$TARGET_TRIPLET | grep ': linux-' | cut -d '-' -f 2`
 tar zcf $TARGET_TRIPLET-kernel-$KERNEL_VERSION.tgz ./$TARGET_TRIPLET
-
+ls -lsha
