@@ -38,13 +38,13 @@ jobs:
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
 
-  upload-toolchain
+  upload-toolchain:
     name: Upload toolchain
     needs: [build-xtools-aarch64, build-xtools-arm, build-xtools-x86_64]
     runs-on: ubuntu-latest
     steps:
-  - uses: actions/upload-artifact@v2
-    with:
-      name: toolchain
-      path: '~/x-tools/*.tgz'
+      - uses: actions/upload-artifact@v2
+        with:
+          name: toolchain
+          path: '~/x-tools/*.tgz'
 
