@@ -17,7 +17,6 @@ echo "build $LORDOS_VERSION for $ARCH..."
 case $ARCH in
     "aarch64")
         export TARGET_TRIPLET=aarch64-unknown-linux-gnu
-        export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-aarch64/aarch64-unknown-linux-gnu.tgz"
         export KERNEL_CONFIG_FILE=kernel.def.config
         export KERNEL_BUILD_ARCH=arm64
         export HAS_KERNEL_DEFCONFIG=true
@@ -26,7 +25,6 @@ case $ARCH in
         ;;
     "arm")
         export TARGET_TRIPLET=arm-unknown-linux-gnueabi
-        export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-arm/arm-unknown-linux-gnueabi.tgz"
         export KERNEL_CONFIG_FILE=kernel.def.config
         export KERNEL_BUILD_ARCH=arm
         export HAS_KERNEL_DEFCONFIG=true
@@ -35,7 +33,6 @@ case $ARCH in
         ;;
     "x86_64")
         export TARGET_TRIPLET=x86_64-unknown-linux-gnu
-        export PREBUILD_TOOLCHAIN_URL="https://github.com/datenlord/data-sync/releases/download/2020.12.07-x86_64/x86_64-unknown-linux-gnu.tgz"
         export KERNEL_CONFIG_FILE=kernel-x86_64.config
         export KERNEL_BUILD_ARCH=x86_64
         export HAS_KERNEL_DEFCONFIG=false
@@ -44,6 +41,7 @@ case $ARCH in
         ;;
 esac
 echo "target: $TARGET_TRIPLET"
+qemu-system-$ARCH --machine help
 
 export BUILDS=`pwd`/lordos_builds/$ARCH
 mkdir -p $BUILDS
@@ -53,17 +51,6 @@ sed "s/CONFIG_LOCALVERSION=\"\"/CONFIG_LOCALVERSION=\"$LORDOS_VERSION\"/g" build
 diff build/$KERNEL_CONFIG_FILE $BUILDS/$KERNEL_CONFIG_FILE | grep $LORDOS_VERSION
 export CODE=$BUILDS/code
 mkdir -p $CODE
-
-qemu-system-$ARCH --machine help
-
-# prebuild x-tools
-export TOOLCHAIN_BASE_DIR=$HOME/x-tools
-mkdir -p $TOOLCHAIN_BASE_DIR
-cd $TOOLCHAIN_BASE_DIR
-wget --timestamping $PREBUILD_TOOLCHAIN_URL
-if [ ! -d "$TARGET_TRIPLET" ]; then
-    tar zxf $TARGET_TRIPLET.tgz
-fi
 
 # crosstool-ng
 cd $CODE
@@ -86,7 +73,8 @@ fi
 ct-ng show-$TARGET_TRIPLET
 
 # check crosstool-ng toolchain available or not
-export TOOLCHAIN_DIR=$HOME/x-tools/$TARGET_TRIPLET
+export TOOLCHAIN_BASE_DIR=$HOME/x-tools
+export TOOLCHAIN_DIR=$TOOLCHAIN_BASE_DIR/$TARGET_TRIPLET
 export PATH="$PATH:$TOOLCHAIN_DIR/bin"
 export SYSROOT=$TOOLCHAIN_DIR/$TARGET_TRIPLET/sysroot
 export GCC=$TARGET_TRIPLET-gcc
