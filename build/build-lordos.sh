@@ -73,7 +73,7 @@ fi
 ct-ng show-$TARGET_TRIPLET
 
 # check crosstool-ng toolchain available or not
-export TOOLCHAIN_BASE_DIR=$HOME/x-tools
+export TOOLCHAIN_BASE_DIR=${TOOLCHAIN_BASE_DIR:-"$HOME/x-tools"}
 export TOOLCHAIN_DIR=$TOOLCHAIN_BASE_DIR/$TARGET_TRIPLET
 export PATH="$PATH:$TOOLCHAIN_DIR/bin"
 export SYSROOT=$TOOLCHAIN_DIR/$TARGET_TRIPLET/sysroot
@@ -129,8 +129,6 @@ export KERNEL_CODE=$CODE/linux-$KERNEL_VERSION
 wget --timestamping https://cdn.kernel.org/pub/linux/kernel/v$KERNEL_MAJOR_VERSION.x/linux-$KERNEL_VERSION.tar.xz
 rm -rf $KERNEL_CODE || echo "no need to remove $KERNEL_CODE"
 tar xf linux-$KERNEL_VERSION.tar.xz
-# cd $CODE
-# sudo ln -sf linux-$KERNEL_VERSION linux
 cd $KERNEL_CODE
 # make O=$KERNEL_BUILD ARCH=$ARCH CROSS_COMPILE="$TARGET_TRIPLET-" defconfig
 if [ "$HAS_KERNEL_DEFCONFIG" = true ]; then
