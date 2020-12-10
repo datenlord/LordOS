@@ -4,6 +4,9 @@ on:
     branches: [main]
   schedule: [cron: "0 */4 * * *"]
 
+env:
+  CROSS_TOOLCHAIN_PATH: /home/runner/x-tools
+
 jobs:
   build-latest-stable-kernel:
     name: Build latest stable kernel with LLVM 10
@@ -67,11 +70,13 @@ jobs:
           workflow: cron.yml
           workflow_conclusion: success
           name: aarch64-toolchain
-          path: /home/runner/x-tools
+          path: ${{ env.CROSS_TOOLCHAIN_PATH }}
       - name: Compile toolchain
+        env:
+          ARCH: aarch64
         run: |
           tar -zxvf ~/x-tools/aarch64*.tgz -C ~/x-tools/
-          ARCH=aarch64 build/build-lordos.sh
+          build/build-lordos.sh |& tee $ARCH-build.log
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
@@ -86,11 +91,13 @@ jobs:
           workflow: cron.yml
           workflow_conclusion: success
           name: arm-toolchain
-          path: /home/runner/x-tools
+          path: ${{ env.CROSS_TOOLCHAIN_PATH }}
       - name: Compile toolchain
+        env:
+          ARCH: arm
         run: |
           tar -zxvf ~/x-tools/arm*.tgz -C ~/x-tools/
-          ARCH=arm build/build-lordos.sh
+          build/build-lordos.sh |& tee $ARCH-build.log
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
@@ -104,11 +111,13 @@ jobs:
           workflow: cron.yml
           workflow_conclusion: success
           name: x86_64-toolchain
-          path: /home/runner/x-tools
+          path: ${{ env.CROSS_TOOLCHAIN_PATH }}
       - name: Compile toolchain
+        env:
+          ARCH: x86_64
         run: |
           tar -zxvf ~/x-tools/x86_64*.tgz -C ~/x-tools/
-          ARCH=x86_64 build/build-lordos.sh
+          build/build-lordos.sh |& tee $ARCH-build.log
       - name: Setup tmate session
         if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
