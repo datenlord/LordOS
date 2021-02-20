@@ -1,5 +1,9 @@
 #! /bin/sh
 
+set -o errexit
+set -o nounset
+set -o xtrace
+
 BUILD_KERNEL=${BUILD_KERNEL:-"true"};
 KERNEL_VERSION=${KERNEL_VERSION:-"5.9.6"}
 LLVM_VERSION=${LLVM_VERSION:-9}
@@ -41,11 +45,7 @@ done
 )
 export PATH=`echo $TMPPATH | sed 's/\\s\+/:/g'`
 echo $PATH
-echo $PATH | grep -c clang
-
-set -o errexit
-set -o nounset
-set -o xtrace
+echo $PATH | grep -c clang | cat
 
 # Configure Kata repo
 ARCH=`arch`
